@@ -11,20 +11,20 @@ const pages = resolvePageToggles({
 	// ── 社交 (Social) ──────────────────────────────────
 
 	// 友链页面开关
-	friends: true,
+	friends: false,
 	// 留言板页面开关，需要配置评论系统
-	guestbook: true,
+	guestbook: false,
 
 	// ── 我的 (My) ──────────────────────────────────
 
 	// 动态页面开关
-	dynamic: true,
+	dynamic: false,
 	// 项目展示页开关
-	projects: true,
+	projects: false,
 	// 相册页面开关
-	gallery: true,
+	gallery: false,
 	// 书签导航页面开关
-	booknav: true,
+	booknav: false,
 	// 哔哩哔哩追番页面开关
 	bilibili: false,
 	// 番组计划页面开关
@@ -42,27 +42,28 @@ const pages = resolvePageToggles({
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "Firefly",
+	title: "FishTca's Blog",
 
 	// 站点副标题
-	subtitle: "Demo site",
+	subtitle: "一个技术分享的网站",
 
 	// 站点 URL
-	site_url: "https://firefly.cuteleaf.cn",
+	site_url: "https://www.ytca.top",
 
 	// 站点描述
 	description:
-		"Firefly 是一款基于 Astro 框架和 Fuwari 模板开发的清新美观且现代化个人博客主题模板，专为技术爱好者和内容创作者设计。该主题融合了现代 Web 技术栈，提供了丰富的功能模块和高度可定制的界面，让您能够轻松打造出专业且美观的个人博客网站。",
+		"专注网络安全与网络工程实践，涵盖 VPN 组网、STUN 内网穿透、DDNS、反向代理与自建服务，分享可落地的配置方案与原理分析。",
 
 	// 站点关键词
 	keywords: [
-		"Firefly",
-		"Fuwari",
-		"Astro",
-		"ACGN",
-		"博客",
-		"技术博客",
-		"静态博客",
+		"stun",
+		"lucky",
+		"内网穿透",
+		"ipv6",
+		"飞牛",
+		"openwrt",
+		"nas",
+		"alist"
 	],
 
 	// 主题色
@@ -81,9 +82,9 @@ export const siteConfig: SiteConfig = {
 	// 网站Card样式配置
 	card: {
 		// 是否开启卡片边框和阴影，开启后让网站更有立体感
-		border: false,
+		border: true,
 		// 是否让卡片风格跟随主题色相
-		followTheme: false,
+		followTheme: true,
 	},
 
 	// Favicon 配置
@@ -91,11 +92,11 @@ export const siteConfig: SiteConfig = {
 	favicon: [
 		{
 			// 图标文件路径
-			src: "/favicon/firefly-32.png",
+			src: "/favicon/favicon-512.avif",
 			// 可选，指定主题 'light' | 'dark'
 			// theme: "light",
 			// 可选，图标大小
-			// sizes: "32x32",
+			// sizes: "512x512",
 		},
 	],
 
@@ -112,12 +113,12 @@ export const siteConfig: SiteConfig = {
 		// 使用 Astro 图标库时不需要设置 valueDark，图标会自动跟随主题亮暗色切换
 		logo: {
 			type: "image",
-			value: "assets/images/logo/firefly-light.png",
-			valueDark: "assets/images/logo/firefly-dark.png",
-			alt: "🍀",
+			value: "/favicon/favicon-512.avif",
+			valueDark: "/favicon/favicon-512.avif",
+			alt: "",
 		},
 		// 导航栏标题
-		title: "Firefly Blog",
+		title: "FishTca's Blog",
 		// 全宽导航栏，导航栏是否占满屏幕宽度
 		widthFull: false,
 		// 导航菜单对齐方式，left：左对齐，center：居中
@@ -132,7 +133,7 @@ export const siteConfig: SiteConfig = {
 	},
 
 	// 站点开始日期，用于统计运行天数
-	siteStartDate: "2025-01-01",
+	siteStartDate: "2024-07-25",
 
 	// 站点时区（IANA 时区字符串），用于格式化bangumi、rss里的构建日期时间等等..
 	// 示例："Asia/Shanghai", "UTC", 如果为空，则按照构建服务器的时区进行时区转换
@@ -160,7 +161,7 @@ export const siteConfig: SiteConfig = {
 	// ── 文章列表布局配置 ──────────────────────────────────
 	postListLayout: {
 		// 默认布局模式："list" 列表模式（单列布局），"grid" 网格模式（多列布局）
-		defaultMode: "list",
+		defaultMode: "grid",
 		// 移动端默认布局模式，不设置则跟随 defaultMode
 		mobileDefaultMode: "grid",
 		// 列表模式下封面图显示在哪一侧："right" 右侧，"left" 左侧
@@ -189,9 +190,9 @@ export const siteConfig: SiteConfig = {
 			// 标签数量，设为 0 则不限制
 			tagCount: 3,
 			// 是否显示字数
-			showWords: false,
+			showWords: true,
 			// 是否显示阅读时间
-			showReadingTime: false,
+			showReadingTime: true,
 		},
 		// 底部 PostStats 统计信息显示控制
 		// 如果tagsPosition设置为"bottom"，则stats将不显示
@@ -335,7 +336,7 @@ export const siteConfig: SiteConfig = {
 		// - "avif": 仅输出 AVIF 格式（最新技术，最小体积，目前兼容性较低，构建时间较长）
 		// - "webp": 仅输出 WebP 格式（体积适中，兼容性好，构建时间短）
 		// - "both": 同时输出 AVIF 和 WebP（浏览器自动选择最佳格式）
-		formats: "webp",
+		formats: "avif",
 		// 图片压缩质量 (1-100)，值越低体积越小但质量越差，推荐 70-85
 		quality: 85,
 		// 为特定域名的图片添加 referrerpolicy="no-referrer" 属性
