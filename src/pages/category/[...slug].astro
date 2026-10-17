@@ -1,0 +1,65 @@
+---
+// 路径式分类页：/category/guide/linux/ 等。
+// 文章实际存在的分类（含各级父前缀）与导航栏中引用的分类都会生成页面；
+// 父级页面（如 /category/guide/）包含所有子分类（guide/linux、guide/openwrt…）的文章。
+import { getCollection } from "astro:content";
+import ArchivePanel from "@components/controls/ArchivePanel.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { navBarConfig } from "@/config";
+import type { NavBarLink } from "@/types/navBarConfig";
+
+export async function getStaticPaths() {
+	const categoryPaths = new Set<string>();
+
+	// 将一个分类路径（如 guide/linux）及其各级父前缀（guide）加入集合
+	// 注意：不做 decodeURIComponent——frontmatter 分类是原始字符串（可能含 % 等字符），
+	// 误 decode 会抛 URIError；导航栏里的 URL 同样按原文处理。
+	const addWithPrefixes = (category: string) => {
+		const segments = category
+			.split("/")
+			.map((s) => s.trim())
+			.filter(Boolean);
+		for (let i = 1; i <= segments.length; i++) {
+			categoryPaths.add(segments.slice(0, i).join("/"));
+		}
+	};
+
+	// 1. 文章 frontmatter 中实际存在的分类
+	const posts = await getCollection("posts", ({ data }) =>
+		import.meta.env.PROD ? data.draft !== true : true,
+	);
+	for (const post of posts) {
+		const cat = (post.data.category || "").trim();
+		if (cat) addWithPrefixes(cat);
+	}
+
+	// 2. 导航栏引用的分类（可能尚无文章，生成空列表页而非 404）
+	const collectFromLinks = (links: NavBarLink[]) => {
+		for (const link of links) {
+			if (!link.external) {
+				const match = link.url.match(/^category\/(.+?)\/?$/);
+				if (match) addWithPrefixes(match[1]);
+			}
+			if (link.children?.length) collectFromLinks(link.children);
+		}
+	};
+	collectFromLinks(navBarConfig.links || []);
+
+	return Array.from(categoryPaths).map((categoryPath) => ({
+		params: { slug: categoryPath },
+		props: { categoryPath },
+	}));
+}
+
+interface Props {
+	categoryPath: string;
+}
+
+const { categoryPath } = Astro.props as Props;
+// 页头标题用最后一段（guide/linux → linux）
+const title = categoryPath.split("/").pop() || categoryPath;
+---
+
+<MainGridLayout title={title}>
+  <ArchivePanel categoryFilter={categoryPath} />
+</MainGridLayout>

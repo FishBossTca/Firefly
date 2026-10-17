@@ -51,7 +51,14 @@ export function getCategoryUrl(category: string | null): string {
 		category.trim().toLowerCase() === i18n(I18nKey.uncategorized).toLowerCase()
 	)
 		return url("/archive/?uncategorized=true");
-	return url(`/archive/?category=${encodeURIComponent(category.trim())}`);
+	// 路径式分类路由：guide/linux → /category/guide/linux/（每段单独编码）
+	const path = category
+		.trim()
+		.split("/")
+		.map((segment) => encodeURIComponent(segment.trim()))
+		.filter(Boolean)
+		.join("/");
+	return url(`/category/${path}/`);
 }
 
 export function getDir(path: string): string {

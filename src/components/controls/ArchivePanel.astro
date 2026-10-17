@@ -7,12 +7,30 @@ import { getPostUrlBySlug, url } from "@/utils/url-utils";
 
 // 归档列表：全量按年分组，服务端渲染。筛选（?tag=/?category=/?uncategorized）
 // 与年份折叠由客户端脚本处理——数据本身在构建期已全部就绪。
+// 传入 categoryFilter（如 "guide/linux"）时在构建期完成分类过滤：
+// 精确匹配该分类，或匹配其所有子分类（"guide/linux"、"guide/iot"…），
+// 供 /category/<path>/ 路径式分类页使用（此时头部静态渲染，无需客户端筛选）。
+interface Props {
+	categoryFilter?: string;
+}
+
+const { categoryFilter } = Astro.props as Props;
+const filterPath = (categoryFilter || "").trim().replace(/^\/+|\/+$/g, "");
+
 const sortedPostsList = await getSortedPostsList();
 
 // 严格按发布时间倒序（不受置顶影响），镜像原 Svelte 版行为
-const posts = sortedPostsList
+const allPosts = sortedPostsList
 	.slice()
 	.sort((a, b) => b.data.published.getTime() - a.data.published.getTime());
+
+const posts = filterPath
+	? allPosts.filter((post) => {
+			const cat = (post.data.category || "").trim();
+			return cat === filterPath || cat.startsWith(`${filterPath}/`);
+		})
+	: allPosts;
+const serverFiltered = filterPath !== "";
 
 // 按年份分组
 const grouped = new Map<number, typeof posts>();
@@ -50,26 +68,49 @@ const i18nStrings = {
 const tagsBaseUrl = url("/tags/");
 const categoriesBaseUrl = url("/categories/");
 const foldOnFilter = collapseAllButFirst;
+
+// 服务端过滤时的统计与头部文案
+const serverFilteredCount = serverFiltered
+	? groups.reduce((sum, g) => sum + g.posts.length, 0)
+	: 0;
+const serverFilteredLabel = filterPath.split("/").join(" / ");
 ---
 
 <archive-panel
   class="card-base px-8 py-6"
   data-fold={foldOnFilter ? "true" : "false"}
+  data-server-filtered={serverFiltered ? "true" : "false"}
 >
-  {/* 筛选头部：默认隐藏，客户端在有筛选时填充并显示 */}
-  <div id="archive-filter-header" class="mb-5 hidden">
-    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-      <div class="min-w-0 text-sm text-75">
-        <a id="archive-filter-link" href={tagsBaseUrl} class="text-50 hover:text-(--primary) transition-colors"></a>
-        <span class="mx-2 text-30">/</span>
-        <span id="archive-filter-values" class="font-semibold text-(--primary)"></span>
-        <span id="archive-filter-secondary" class="ml-2 text-50 hidden"></span>
-      </div>
-      <div class="shrink-0 text-xs text-50">
-        <span id="archive-filter-count"></span> <span id="archive-filter-count-label"></span>
+  {/* 筛选头部：服务端过滤（/category/ 页）时静态渲染；查询串筛选默认隐藏，由客户端填充显示 */}
+  {serverFiltered ? (
+    <div id="archive-filter-header" class="mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <div class="min-w-0 text-sm text-75">
+          <a href={categoriesBaseUrl} class="text-50 hover:text-(--primary) transition-colors">{i18nStrings.categories}</a>
+          <span class="mx-2 text-30">/</span>
+          <span class="font-semibold text-(--primary)">{serverFilteredLabel}</span>
+        </div>
+        <div class="shrink-0 text-xs text-50">
+          <span>{serverFilteredCount}</span> {" "}
+          <span>{i18n(serverFilteredCount === 1 ? I18nKey.postCount : I18nKey.postsCount)}</span>
+        </div>
       </div>
     </div>
-  </div>
+  ) : (
+    <div id="archive-filter-header" class="mb-5 hidden">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <div class="min-w-0 text-sm text-75">
+          <a id="archive-filter-link" href={tagsBaseUrl} class="text-50 hover:text-(--primary) transition-colors"></a>
+          <span class="mx-2 text-30">/</span>
+          <span id="archive-filter-values" class="font-semibold text-(--primary)"></span>
+          <span id="archive-filter-secondary" class="ml-2 text-50 hidden"></span>
+        </div>
+        <div class="shrink-0 text-xs text-50">
+          <span id="archive-filter-count"></span> <span id="archive-filter-count-label"></span>
+        </div>
+      </div>
+    </div>
+  )}
 
   {groups.map((group, groupIndex) => {
     const collapsed = collapseAllButFirst && groupIndex > 0;
@@ -174,6 +215,12 @@ const foldOnFilter = collapseAllButFirst;
     }
 
     init() {
+      // /category/ 路径式分类页在构建期已完成过滤与头部渲染，客户端只绑定年份折叠
+      if (this.dataset.serverFiltered === "true") {
+        this.bindYearToggles();
+        return;
+      }
+
       const params = new URLSearchParams(window.location.search);
       const tags = params.has("tag") ? params.getAll("tag") : [];
       const categories = params.has("category") ? params.getAll("category") : [];

@@ -27,7 +27,13 @@ const isCategories = pathname === "/categories";
 const isArchive = pathname === archivePath;
 const postCategory = (currentPostCategory || "").trim();
 
-// 返回某个 pill 的初始高亮属性：active（强）或 soft-active（弱，文章页所属分类）
+// /category/<path>/ 路径式分类页：从 pathname 解出当前分类（构建期路径由本主题生成，解码安全）
+const categoryBasePath = url("/category/").replace(/\/$/, "");
+const currentCategoryPath = pathname.startsWith(`${categoryBasePath}/`)
+	? decodeURIComponent(pathname.slice(categoryBasePath.length + 1))
+	: "";
+
+// 返回某个 pill 的初始高亮属性：active（强）或 soft-active（弱，文章页所属分类 / 分类页父级分类）
 function initialActive(categoryName: string): {
 	active?: boolean;
 	soft?: boolean;
@@ -36,6 +42,12 @@ function initialActive(categoryName: string): {
 	if (isCategories)
 		return categoryName === "__categories__" ? { active: true } : {};
 	if (isArchive) return categoryName === "__archive__" ? { active: true } : {};
+	if (currentCategoryPath) {
+		if (categoryName === currentCategoryPath) return { active: true };
+		if (categoryName && currentCategoryPath.startsWith(`${categoryName}/`))
+			return { soft: true };
+		return {};
+	}
 	if (postCategory && categoryName === postCategory) return { soft: true };
 	return {};
 }
@@ -46,6 +58,7 @@ function initialActive(categoryName: string): {
   id="category-bar"
   data-home-path={homeUrl}
   data-archive-path={archiveUrl}
+  data-category-base-path={url("/category/")}
   data-current-post-category={currentPostCategory || ""}
 >
   <div class="category-bar-inner flex gap-2">
@@ -178,11 +191,23 @@ function initialActive(categoryName: string): {
     const isArchive = pathname === archivePath;
     const isCategories = pathname === "/categories";
 
+    // /category/<path>/ 路径式分类页：从 pathname 解出当前分类，否则回退到 ?category= 查询串
+    const categoryBase = (bar.getAttribute("data-category-base-path") || "/category/").replace(/\/$/, "");
+    let pathCategory = "";
+    if (pathname.startsWith(`${categoryBase}/`)) {
+      const raw = pathname.slice(categoryBase.length + 1);
+      try {
+        pathCategory = decodeURIComponent(raw);
+      } catch {
+        pathCategory = raw;
+      }
+    }
+
     return {
       isHome,
       isArchive,
       isCategories,
-      activeCategory: currentUrl.searchParams.get("category") || "",
+      activeCategory: pathCategory || currentUrl.searchParams.get("category") || "",
       hasTag: currentUrl.searchParams.has("tag"),
       hasUncategorized: currentUrl.searchParams.has("uncategorized"),
     };
@@ -213,8 +238,12 @@ function initialActive(categoryName: string): {
 
     if (activeCategory) {
       pills.forEach((pill) => {
-        if (pill.getAttribute("data-category-name") === activeCategory) {
+        const name = pill.getAttribute("data-category-name") || "";
+        if (name === activeCategory) {
           pill.setAttribute("data-active", "");
+        } else if (name && activeCategory.startsWith(`${name}/`)) {
+          // 路径式分类页的父级分类 pill 弱高亮（如 /category/guide/linux/ 高亮 guide）
+          pill.setAttribute("data-soft-active", "");
         }
       });
       return;
